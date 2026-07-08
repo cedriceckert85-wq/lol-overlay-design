@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>LoL Rank Overlay</title>
+<style>
+  @font-face {
+    font-family: "Montserrat";
+    src: url("/assets/fonts/montserrat.woff2") format("woff2");
+    font-weight: 100 900;
+  }
+  :root {
+    --glass:     rgba(16, 19, 27, .72);
+    --hairline:  rgba(255, 255, 255, .08);
+    --gold:      #e5b95c;
+    --gold-soft: #e3c77c;
+    --gold-label:#b1a082;
+    --text:      #f4f7fc;
+    --warmwhite: #f2eadb;
+    --muted:     #8d929c;
+    --muted2:    #9aa2ac;
+    --win:       #40cd87;
+    --loss:      #f35c63;
+    --netpos:    #50c890;
+    --chip:      #10141d;
+    --bar1:#a67c3d; --bar2:#be9454; --bar3:#e5c78a;
+    --knob1:#fff8e0; --knob2:#ffeec0; --knob3:#f0c05a;
+    --knob-glow: rgba(255,222,140,.65);
+    --pill-border: rgba(229,185,92,.45);
+    --pill-bg:   rgba(229,185,92,.10);
+    --pill-text: #dcbb66;
+    --pct:       #d3a94f;
+  }
+
+  /* ---- Skins (Design-Menue, Strg+Win+Alt+C) ---- */
+  body.skin-ice {
+    --glass: rgba(10,16,24,.78);
+    --hairline: rgba(111,199,242,.18);
+    --gold:#6fc7f2; --gold-soft:#9fdcf8; --gold-label:#7fa9bf;
+    --warmwhite:#eaf6fc;
+    --bar1:#20638c; --bar2:#3b8dbd; --bar3:#9adcf8;
+    --knob1:#f2fbff; --knob2:#cfeeff; --knob3:#54b4e4;
+    --knob-glow: rgba(140,220,255,.7);
+    --pill-border: rgba(111,199,242,.45);
+    --pill-bg: rgba(111,199,242,.10);
+    --pill-text:#8fd4f5;
+    --pct:#54b4e4;
+  }
+  body.skin-neon {
+    --glass: rgba(8,12,10,.8);
+    --hairline: rgba(61,255,154,.22);
+    --gold:#3dff9a; --gold-soft:#7dffbe; --gold-label:#67c99a;
+    --warmwhite:#e8fff2;
+    --bar1:#0f7a44; --bar2:#19b566; --bar3:#5fffab;
+    --knob1:#eafff4; --knob2:#b8ffdd; --knob3:#31e585;
+    --knob-glow: rgba(61,255,154,.7);
+    --pill-border: rgba(61,255,154,.5);
+    --pill-bg: rgba(61,255,154,.08);
+    --pill-text:#5fffab;
+    --pct:#31e585;
+  }
+  body.skin-diamond {
+    --glass: rgba(10,14,26,.78);
+    --hairline: rgba(140,180,255,.20);
+    --gold:#8cb4ff; --gold-soft:#b7d0ff; --gold-label:#8598c4;
+    --warmwhite:#eef3ff;
+    --bar1:#2b4f9e; --bar2:#4a77d4; --bar3:#a9c6ff;
+    --knob1:#f4f8ff; --knob2:#d6e4ff; --knob3:#6d9bee;
+    --knob-glow: rgba(150,190,255,.7);
+    --pill-border: rgba(140,180,255,.45);
+    --pill-bg: rgba(140,180,255,.10);
+    --pill-text:#a9c6ff;
+    --pct:#6d9bee;
+  }
+  body.skin-master {
+    --glass: rgba(16,10,24,.8);
+    --hairline: rgba(190,120,255,.22);
+    --gold:#c084fc; --gold-soft:#d8b4fe; --gold-label:#a184c2;
+    --warmwhite:#f6eeff;
+    --bar1:#6d28a8; --bar2:#9245d6; --bar3:#d8b4fe;
+    --knob1:#faf5ff; --knob2:#ead6ff; --knob3:#a855f7;
+    --knob-glow: rgba(200,140,255,.7);
+    --pill-border: rgba(190,120,255,.45);
+    --pill-bg: rgba(190,120,255,.10);
+    --pill-text:#d8b4fe;
+    --pct:#a855f7;
+  }
+  body.skin-glass {
+    --hairline: rgba(255,255,255,.24);
+    --gold:#eef3fa; --gold-soft:#f4f8fd; --gold-label:#b9c4d2;
+    --warmwhite:#f6f9fd;
+    --muted:#a4adb9; --muted2:#b2bbc7;
+    --chip: rgba(255,255,255,.10);
+    --bar1:#8d98a8; --bar2:#c0c9d6; --bar3:#f2f6fb;
+    --knob1:#ffffff; --knob2:#eef3fa; --knob3:#c5cfdd;
+    --knob-glow: rgba(255,255,255,.55);
+    --pill-border: rgba(255,255,255,.4);
+    --pill-bg: rgba(255,255,255,.12);
+    --pill-text:#eef3fa;
+    --pct:#dfe7f1;
+  }
+  /* Glass: Karte voll transparent — die ausgestanzte Flaeche bekommt vom
+     Fenster (server.py) einen Win11-Acrylic-Blur hinterlegt. */
+  body.skin-glass #card {
+    background: transparent;
+    border-color: rgba(255,255,255,.35);
+  }
+  body.skin-glass #card * { text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+  body.skin-glass .game, body.skin-glass .bar-knob { text-shadow: none; }
+  body.skin-glass .stats, body.skin-glass .grind { border-color: rgba(255,255,255,.22); }
+  body.skin-glass .bar { background: rgba(255,255,255,.22); }
+  body.skin-glass .grind svg circle,
+  body.skin-glass .grind svg path { stroke: #cdd7e3; }
+  body.skin-glass.clean #card {
+    background: transparent;
+    border-color: rgba(255,255,255,.35);
+  }
+  body.skin-glass.clean .rankrow, body.skin-glass.clean .bar-wrap,
+  body.skin-glass.clean .games, body.skin-glass.clean .stats {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.20);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    overflow: hidden;          /* nie Scrollbars im Overlay */
+    background: transparent;
+  }
+  /* Fenster-Modus (?win=1): Seite bleibt voll transparent; die Form
+     dahinter traegt die Key-Farbe, die Windows ausstanzt. */
+  body.winbg { background: transparent; }
+  ::-webkit-scrollbar { display: none; }
+  body {
+    font-family: "Montserrat", "Segoe UI", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #card {
+    width: 300px;
+    background: var(--glass);
+    border: 1px solid var(--hairline);
+    border-radius: 22px;
+    padding: 10px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    color: var(--text);
+  }
+
+  /* ---- Header: "5 WINS TILL SILVER" ---- */
+  .header {
+    text-align: center;
+    font-weight: 800;
+    font-size: 13.5px;
+    letter-spacing: 2.6px;
+    padding: 3px 0 9px;
+    white-space: nowrap;
+    color: #f2f5fa;
+  }
+  .header .num { color: var(--gold); font-size: 17px; margin-right: 6px; vertical-align: -1px; }
+  .header-line {
+    height: 1px; background: var(--hairline);
+    margin: 0 2px 10px;
+  }
+
+  /* ---- Rank row ---- */
+  .rankrow { display:flex; align-items:center; gap:11px; padding: 0 2px 8px; }
+  .emblem-wrap {
+    width: 48px; height: 48px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 50%;
+  }
+  .emblem-wrap img { width: 41px; object-fit: contain; }
+  .rankname { font-size: 18px; font-weight: 700; letter-spacing:.2px; }
+  .lp-pill {
+    display:inline-block; margin-top:6px;
+    border:1px solid var(--pill-border); border-radius:999px;
+    padding:2px 12px 3px;
+    background: var(--pill-bg);
+    color: var(--pill-text); line-height:1.25;
+  }
+  .lp-pill .n { font-size:14.5px; font-weight:800; }
+  .lp-pill .u { font-size:9.5px; font-weight:800; letter-spacing:.5px; margin-left:3px; }
+
+  /* ---- Progress bar ---- */
+  .bar-wrap { padding: 2px 2px 9px; }
+  .bar {
+    position:relative; height:6px; border-radius:999px;
+    background: rgba(255,255,255,.09);
+  }
+  .bar-fill {
+    position:absolute; left:0; top:0; bottom:0; width:0%;
+    background: linear-gradient(90deg, var(--bar1), var(--bar2) 30%, var(--bar3));
+    border-radius:999px; transition: width .8s ease;
+  }
+  .bar .tick {
+    position:absolute; top:0; bottom:0; width:2px;
+    background: rgba(10,12,18,.55);
+  }
+  .bar-knob {
+    position:absolute; top:50%; width:12px; height:12px;
+    transform: translate(-50%,-50%);
+    border-radius:50%;
+    background: radial-gradient(circle, var(--knob1) 20%, var(--knob2) 55%, var(--knob3));
+    box-shadow: 0 0 8px 2px var(--knob-glow);
+    transition: left .8s ease;
+  }
+  .bar-labels {
+    display:flex; align-items:baseline; margin-top:5px;
+    font-size:10.5px; font-weight:700; color:var(--muted);
+    letter-spacing:.3px;
+  }
+  .bar-labels .l { flex:1; text-align:left; }
+  .bar-labels .c { flex:1; text-align:center; color:var(--pct); font-weight:800; }
+  .bar-labels .r { flex:1; text-align:right; }
+
+  /* ---- Last 5 games ---- */
+  .section-title {
+    font-size:10px; font-weight:800; letter-spacing:2.2px;
+    color:var(--muted2); margin: 0 0 6px; padding-left:2px;
+  }
+  .games { display:flex; gap:7px; justify-content:space-between; padding-bottom:10px; }
+  .game {
+    position:relative; width:50px; height:50px; border-radius:14px;
+    border:2px solid var(--win); overflow:hidden;
+    background: rgba(255,255,255,.05);
+  }
+  .game.loss   { border-color:var(--loss); }
+  .game.remake { border-color:var(--muted); }
+  .game img {
+    width:100%; height:100%; object-fit:cover;
+    transform:scale(1.12); filter:saturate(.92) brightness(.96);
+  }
+  .game .tag {
+    position:absolute; left:0; bottom:0;
+    width:16px; height:15px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; font-weight:800; color:#fff;
+    border-top-right-radius:8px;
+    background:var(--win);
+  }
+  .game.loss   .tag { background:var(--loss); }
+  .game.remake .tag { background:var(--muted); }
+  .game .lpd {
+    position:absolute; right:0; top:0;
+    font-size:8.5px; font-weight:800;
+    background:rgba(10,12,16,.8);
+    border-bottom-left-radius:8px; padding:1px 4px;
+    color:var(--netpos);
+  }
+  .game .lpd.neg { color:var(--loss); }
+
+  /* ---- Stats row (3 Spalten, nur Hairline-Trenner) ---- */
+  .stats {
+    display:flex;
+    border-top: 1px solid var(--hairline);
+    padding:9px 0 8px;
+  }
+  .stat {
+    flex:1; text-align:center; position:relative;
+  }
+  .stat + .stat::before {
+    content:""; position:absolute; left:0; top:18%; bottom:18%;
+    width:1px; background:var(--hairline);
+  }
+  .stat .val { font-size:17px; font-weight:800; letter-spacing:.3px; }
+  .stat .lbl {
+    font-size:9px; font-weight:700; letter-spacing:1.6px;
+    color:var(--muted); margin-top:3px;
+  }
+  .stat .val.gold { color:var(--gold-soft); }
+  .stat .val.pos  { color:var(--netpos); }
+  .stat .val.neg  { color:var(--loss); }
+
+  /* ---- Grind timer ---- */
+  .grind {
+    display:flex; align-items:center; justify-content:space-between;
+    border-top: 1px solid var(--hairline);
+    padding:9px 4px 2px 2px;
+  }
+  .grind .left { display:flex; align-items:flex-end; gap:9px; }
+  .grind svg { width:14px; height:14px; flex:none; margin-bottom:5px; }
+  .grind .lbl {
+    font-size:9px; font-weight:800; letter-spacing:1.8px;
+    color:var(--gold-label);
+  }
+  .grind .val {
+    font-size:18px; font-weight:800; color:var(--warmwhite);
+    margin-top:1px; letter-spacing:.5px; line-height:1.15;
+  }
+  .grind .right { text-align:right; }
+
+  #error {
+    display:none; font-size:10.5px; color:#ff8a8a; text-align:center;
+    padding:8px 6px 0; font-weight:600;
+  }
+
+  /* ---- Small-Layout (Klein-Versionen): Header im Rang-Feld, kein Timer ---- */
+  .mini-header { display: none; font-size: 10.5px; font-weight: 800; margin-top: 2px; }
+  .mini-header .num { color: var(--gold); font-size: 12px; margin-right: 4px; }
+  .lp-inline { display: none; color: var(--pill-text); font-weight: 800;
+               font-size: 13.5px; margin-left: 9px; vertical-align: 1px; }
+  .streak { display: none; color: #ff9a3c; font-weight: 800; font-size: 12.5px;
+            margin-left: 8px; vertical-align: 1px; }
+  body.small #card { width: 270px; border-radius: 16px; padding: 10px 12px 8px; }
+  body.small .header, body.small .header-line { display: none; }
+  body.small .section-title { display: none; }
+  body.small .grind { display: none; }
+  body.small .mini-header { display: block; }
+  body.small .lp-pill { display: none; }
+  body.small .lp-inline { display: inline; }
+  body.small .emblem-wrap { width: 44px; height: 44px; }
+  body.small .emblem-wrap img { width: 38px; }
+  body.small .rankname { font-size: 16px; }
+  body.small .games { padding-bottom: 6px; }
+  body.small .game { width: 40px; height: 40px; border-radius: 11px; border-width: 2px; }
+  body.small .game .tag { display: none; }
+
+  /* ---- Clean-Modus (Strg+Win+Alt+Z): kompaktes Panel ----
+     Die Fenster-Region (server.py) schneidet das Fenster exakt auf das
+     Panel zu — deutlich kleiner als die volle Karte. */
+  body.clean #card {
+    background: rgba(10, 13, 19, .9);
+    border-color: var(--hairline);
+    border-radius: 16px;
+    padding: 6px;
+    width: 270px;
+  }
+  body.clean .header, body.clean .header-line { display: none; }
+  body.clean .section-title { display: none; }
+  body.clean .grind { display: none; }
+  body.clean .rankrow, body.clean .bar-wrap,
+  body.clean .games, body.clean .stats {
+    background: #151a26;
+    border-radius: 11px;
+    margin-bottom: 5px;
+  }
+  body.clean .rankrow { padding: 4px 12px 4px 8px; gap: 9px; }
+  body.clean .emblem-wrap { width: 38px; height: 38px; }
+  body.clean .emblem-wrap img { width: 33px; }
+  body.clean .rankname { font-size: 15px; }
+  body.clean .lp-pill { margin-top: 3px; padding: 1px 9px 2px; }
+  body.clean .lp-pill .n { font-size: 12.5px; }
+  body.clean .bar-wrap { padding: 9px 12px 7px; }
+  body.clean .games { padding: 7px 9px; }
+  body.clean .game { width: 40px; height: 40px; border-radius: 11px; border-width: 2px; }
+  body.clean .game .tag { display: none; }   /* Farbe + Tooltip reichen im Clean-Modus */
+  body.clean .stats { border-top: none; padding: 6px 0 7px; margin-bottom: 0; }
+  body.clean .stat .val { font-size: 14.5px; }
+
+  /* ---- Mini-Bar-Layout (Design-Menue) ---- */
+  #minibar {
+    display: none; align-items: center; gap: 10px;
+    width: fit-content;
+    background: var(--chip);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 8px 16px 8px 10px;
+    color: var(--text);
+  }
+  body.layout-bar #card { display: none; }
+  body.layout-bar #minibar { display: flex; }
+  #minibar img { width: 26px; height: 22px; object-fit: contain; }
+  #minibar .b-rank { font-size: 13.5px; font-weight: 800; white-space: nowrap; }
+  #minibar .b-lp { font-size: 12px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+  #minibar .b-dots { display: flex; gap: 4px; }
+  #minibar .b-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--win); }
+  #minibar .b-dots span.l { background: var(--loss); }
+  #minibar .b-dots span.r { background: var(--muted); }
+  #minibar .b-net { font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+  #minibar .b-net.pos { color: var(--netpos); }
+  #minibar .b-net.neg { color: var(--loss); }
+
+  /* ---- Settings-Panel (Strg+Win+Alt+C): ersetzt das Overlay ---- */
+  #settings {
+    display: none; position: fixed; top: 0; left: 0; z-index: 20;
+    width: 252px;
+    background: #12151f;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 10px 10px 8px;
+    color: var(--text);
+  }
+  body.settings-open #settings { display: block; }
+  body.settings-open #card, body.settings-open #minibar { display: none; }
+  .s-head {
+    font-size: 10px; font-weight: 800; letter-spacing: 2.2px;
+    color: var(--muted2); padding: 2px 4px 8px;
+  }
+  .s-opt {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .s-opt:hover { background: rgba(255,255,255,.05); }
+  .s-opt.active { border-color: var(--pill-border); background: rgba(255,255,255,.04); }
+  .s-name { font-size: 12.5px; font-weight: 700; }
+  .s-sub { font-size: 9.5px; color: var(--muted); margin-top: 1px; }
+  .sw { width: 22px; height: 22px; border-radius: 7px; flex: none; }
+  .sw1 { background: linear-gradient(135deg, #22252e 45%, #e5b95c); }
+  .sw2 { background: repeating-linear-gradient(180deg, #171c28 0 5px, #030405 5px 8px); }
+  .sw3 { background: #171c28; border-radius: 999px; height: 11px; }
+  .sw4 { background: linear-gradient(135deg, #16222e 45%, #6fc7f2); }
+  .sw5 { background: linear-gradient(135deg, #0c1410 45%, #3dff9a); }
+  .sw6, .sw7 {
+    background: linear-gradient(135deg, rgba(255,255,255,.45),
+                rgba(255,255,255,.12) 55%, rgba(255,255,255,.3));
+    border: 1px solid rgba(255,255,255,.45);
+  }
+  .sw6 { height: 14px; margin: 4px 0; border-radius: 5px; }
+  .s-foot {
+    font-size: 8.5px; font-weight: 700; letter-spacing: 1px;
+    color: var(--muted); text-align: center; padding: 7px 0 2px;
+  }
+
+  /* ---- Move-Modus (Strg+Win+Alt+X im Fenster-Modus) ---- */
+  body.move-mode #card {
+    /* Greifbar in JEDEM Design: voll transparente Flaechen waeren
+       klick-durchlaessig — !important schlaegt auch die Glass-Skins. */
+    background: var(--glass) !important;
+  }
+  body.move-mode.clean .rankrow, body.move-mode.clean .bar-wrap,
+  body.move-mode.clean .games, body.move-mode.clean .stats {
+    background: var(--chip) !important;
+  }
+  body.move-mode #card, body.move-mode #minibar {
+    outline: 2px dashed var(--gold);
+    outline-offset: -2px;
+    cursor: move;
+  }
+  #move-hint {
+    display: none;
+    position: fixed; left: 50%; bottom: 6px;
+    transform: translateX(-50%);
+    background: var(--gold); color: #1a1508;
+    font-size: 9.5px; font-weight: 800; letter-spacing: 1px;
+    padding: 4px 12px; border-radius: 8px;
+    white-space: nowrap; pointer-events: none;
+    z-index: 10;
+  }
+  body.move-mode #move-hint { display: block; }
+</style>
+<!-- Anpass-Haken: liegt eine custom.css im GitHub-Repo (neben der
+     overlay.html), ueberschreibt sie alles hier — Farben, Layout, alles.
+     Fehlt die Datei, passiert einfach nichts (404 ist ok). -->
+<link rel="stylesheet" href="/custom.css">
+</head>
+<body>
+<div id="card">
+  <div class="header"><span class="num" id="h-num">–</span><span id="h-text">LADE ...</span></div>
+  <div class="header-line"></div>
+
+  <div class="rankrow">
+    <div class="emblem-wrap" id="emblem-wrap">
+      <img id="crest" src="" alt="" onerror="this.style.visibility='hidden'">
+    </div>
+    <div>
+      <div><span class="rankname" id="rank">–</span><span class="lp-inline"
+            id="lp-inline">– LP</span><span class="streak" id="streak"></span></div>
+      <div class="mini-header" id="mini-header"></div>
+      <div class="lp-pill"><span class="n" id="lp-n">–</span><span class="u">LP</span></div>
+    </div>
+  </div>
+
+  <div class="bar-wrap">
+    <div class="bar">
+      <div class="bar-fill" id="bar-fill"></div>
+      <div class="tick" style="left:25%"></div>
+      <div class="tick" style="left:50%"></div>
+      <div class="tick" style="left:75%"></div>
+      <div class="bar-knob" id="bar-knob" style="left:0%"></div>
+    </div>
+    <div class="bar-labels">
+      <span class="l" id="lbl-l"></span>
+      <span class="c" id="lbl-c"></span>
+      <span class="r" id="lbl-r"></span>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">LAST 5 GAMES</div>
+    <div class="games" id="games"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="val" id="s-wl">–</div><div class="lbl" id="s-wl-lbl">SESSION</div></div>
+    <div class="stat"><div class="val gold" id="s-wr">–</div><div class="lbl" id="s-wr-lbl">WIN RATE</div></div>
+    <div class="stat"><div class="val" id="s-lp">–</div><div class="lbl" id="s-lp-lbl">NET LP</div></div>
+  </div>
+
+  <div class="grind">
+    <div class="left">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="6.6" stroke="#b1a082" stroke-width="1.5"/>
+        <path d="M8 4.6V8l2.4 1.5" stroke="#b1a082" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="lbl" id="g-lbl">GRIND TIMER</div>
+        <div class="val" id="g-time">00:00:00</div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="lbl">ALLE GAMES</div>
+      <div class="val" id="g-games">0</div>
+    </div>
+  </div>
+
+  <div id="error"></div>
+</div>
+
+<div id="minibar">
+  <img id="b-crest" src="" alt="" onerror="this.style.visibility='hidden'">
+  <span class="b-rank" id="b-rank">–</span>
+  <span class="b-lp" id="b-lp">– LP</span>
+  <span class="b-dots" id="b-dots"></span>
+  <span class="b-net" id="b-net">–</span>
+</div>
+
+<div id="settings">
+  <div class="s-head">DESIGN W&Auml;HLEN</div>
+  <div class="s-opt" data-preset="1" onclick="setPreset(1)">
+    <span class="sw sw1"></span>
+    <div><div class="s-name">Gold Glass</div><div class="s-sub">Volle Karte, dunkles Glas, Gold</div></div>
+  </div>
+  <div class="s-opt" data-preset="2" onclick="setPreset(2)">
+    <span class="sw sw1"></span>
+    <div><div class="s-name">Gold Glass Klein</div><div class="s-sub">Kleine Karte ohne Timer</div></div>
+  </div>
+  <div class="s-opt" data-preset="3" onclick="setPreset(3)">
+    <span class="sw sw4"></span>
+    <div><div class="s-name">Hextech Ice</div><div class="s-sub">Volle Karte in Eisblau</div></div>
+  </div>
+  <div class="s-opt" data-preset="4" onclick="setPreset(4)">
+    <span class="sw sw4"></span>
+    <div><div class="s-name">Hextech Ice Klein</div><div class="s-sub">Kleine Karte in Eisblau</div></div>
+  </div>
+  <div class="s-opt" data-preset="5" onclick="setPreset(5)">
+    <span class="sw sw5"></span>
+    <div><div class="s-name">Neon</div><div class="s-sub">Volle Karte in Neon-Gr&uuml;n</div></div>
+  </div>
+  <div class="s-opt" data-preset="6" onclick="setPreset(6)">
+    <span class="sw sw5"></span>
+    <div><div class="s-name">Neon Klein</div><div class="s-sub">Kleine Karte in Neon-Gr&uuml;n</div></div>
+  </div>
+  <div class="s-opt" data-preset="7" onclick="setPreset(7)">
+    <span class="sw sw2"></span>
+    <div><div class="s-name">Clean Chips</div><div class="s-sub">Kompaktes Panel, dunkel</div></div>
+  </div>
+  <div class="s-opt" data-preset="8" onclick="setPreset(8)">
+    <span class="sw sw3"></span>
+    <div><div class="s-name">Mini Bar</div><div class="s-sub">Eine schlanke Zeile: Rang, LP, Form</div></div>
+  </div>
+  <div class="s-foot">&#8593;/&#8595; W&Auml;HLEN &middot; ENTER ODER STRG+WIN+ALT+C SCHLIESST</div>
+</div>
+
+<div id="move-hint">VERSCHIEBEN AKTIV — STRG+WIN+ALT+X SPERRT</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let grindBase = 0, grindAt = Date.now();
+let lastData = null;
+let timerMode = 0;   // 0 = Grind-Timer (seit Start), 1 = Ingame-Zeit
+
+function fmtHMS(t) {
+  const s = Math.max(0, Math.floor(t));
+  return String(Math.floor(s / 3600)).padStart(2, "0") + ":" +
+         String(Math.floor(s % 3600 / 60)).padStart(2, "0") + ":" +
+         String(s % 60).padStart(2, "0");
+}
+
+const TIER_GLOW = {
+  iron: "110,115,120", bronze: "150,70,50", silver: "150,160,175",
+  gold: "215,175,80", platinum: "70,160,160", emerald: "60,170,105",
+  diamond: "90,155,215", master: "160,90,205", grandmaster: "210,70,70",
+  challenger: "80,195,245",
+};
+
+// Design-Update: die EXE zieht alle Design-Dateien (overlay.html,
+// custom.css, custom.js, Bilder ...) von GitHub; aendert sich irgendeine,
+// wechselt html_hash und die Seite laedt sich selbst neu.
+let htmlHash = null;
+function checkHtmlHash(d) {
+  if (!d.html_hash) return;
+  if (htmlHash === null) htmlHash = d.html_hash;
+  else if (htmlHash !== d.html_hash) location.reload();
+}
+
+function render(d) {
+  checkHtmlHash(d);
+  if (d.error) { $("error").textContent = d.error; $("error").style.display = "block"; }
+  else $("error").style.display = "none";
+  if (!d.ok) return;
+  lastData = d;
+
+  // Match gestartet/beendet -> Layout ggf. automatisch umschalten
+  if ((d.in_game ?? false) !== inGame) {
+    inGame = d.in_game ?? false;
+    applyView();
+  }
+  // Rang geaendert -> Farben ggf. an die Elo anpassen
+  if ((d.tier || "unranked") !== curTier) {
+    curTier = d.tier || "unranked";
+    applyView();
+  }
+
+  $("h-num").textContent = d.header_num ?? "";
+  $("h-text").textContent = d.header_text;
+  $("rank").textContent = d.rank_label;
+  $("lp-n").textContent = d.lp ?? "–";
+  $("lp-inline").textContent = (d.lp ?? "–") + " LP";
+  $("mini-header").innerHTML =
+    `<span class="num">${d.header_num ?? ""}</span>${d.header_text}`;
+  const streak = d.win_streak ?? 0;
+  $("streak").style.display = streak >= 3 ? "inline" : "none";
+  $("streak").textContent = `\u{1F525}${streak}`;
+
+  const c = $("crest"), wrap = $("emblem-wrap");
+  if (d.tier !== "unranked") {
+    c.style.visibility = "visible";
+    c.src = `/assets/ranks/${d.tier}.png`;
+    const glow = TIER_GLOW[d.tier] || "120,120,120";
+    wrap.style.background =
+      `radial-gradient(circle, rgba(${glow},.30) 0%, rgba(${glow},.12) 45%, transparent 72%)`;
+  } else {
+    c.style.visibility = "hidden";
+    wrap.style.background = "none";
+  }
+
+  $("bar-fill").style.width = d.progress + "%";
+  const knob = $("bar-knob");
+  if (d.progress > 0 && d.progress < 100) {
+    knob.style.display = "block";
+    knob.style.left = d.progress + "%";
+  } else knob.style.display = "none";
+  $("lbl-l").textContent = d.left_label;
+  $("lbl-c").textContent = d.progress + "%";
+  $("lbl-r").textContent = d.right_label;
+
+  $("games").innerHTML = d.last5.map(g => {
+    const cls = g.remake ? "remake" : (g.win ? "" : "loss");
+    const tag = g.remake ? "R" : (g.win ? "W" : "L");
+    const lpd = g.lp_delta == null ? "" :
+      `<span class="lpd${g.lp_delta < 0 ? " neg" : ""}">` +
+      `${g.lp_delta > 0 ? "+" : ""}${g.lp_delta}</span>`;   // +Gewinn / -Verlust
+    return `<div class="game ${cls}" title="${g.champ}">
+      <img src="/assets/champs/${g.champ_id}.png" alt="${g.champ}"><span class="tag">${tag}</span>${lpd}</div>`;
+  }).join("");
+
+  renderStats();
+  $("g-games").textContent = (d.season_wins ?? 0) + (d.season_losses ?? 0);
+
+  grindBase = d.grind_seconds; grindAt = Date.now();
+  renderBar(d);
+  updateTimerBox();
+}
+
+function renderBar(d) {
+  const c = $("b-crest");
+  if (d.tier !== "unranked") { c.style.visibility = "visible"; c.src = `/assets/ranks/${d.tier}.png`; }
+  else c.style.visibility = "hidden";
+  $("b-rank").textContent = d.rank_label;
+  $("b-lp").textContent = (d.lp ?? "–") + " LP";
+  $("b-dots").innerHTML = d.last5.map(g =>
+    `<span class="${g.remake ? "r" : (g.win ? "" : "l")}" title="${g.champ}"></span>`
+  ).join("");
+  const lp = d.session.net_lp;
+  const el = $("b-net");
+  el.textContent = (lp == null ? "–" : (lp >= 0 ? "+" + lp : String(lp))) + " LP";
+  el.className = "b-net " + (lp == null ? "" : lp >= 0 ? "pos" : "neg");
+}
+
+// Stat-Zeile: kleine Layouts wechseln alle 10s zwischen Session und Gesamt
+let statsMode = 0;
+setInterval(() => { statsMode = 1 - statsMode; renderStats(); }, 10000);
+
+function renderStats() {
+  if (!lastData) return;
+  const d = lastData;
+  const compact = document.body.classList.contains("clean") ||
+                  document.body.classList.contains("small");
+  const lpEl = $("s-lp");
+  if (!compact || statsMode === 0) {
+    const s = d.session;
+    $("s-wl").textContent = `${s.wins}-${s.losses}`;
+    $("s-wl-lbl").textContent = "SESSION";
+    $("s-wr").textContent = s.winrate + "%";
+    $("s-wr-lbl").textContent = "WIN RATE";
+    const lp = s.net_lp;
+    lpEl.textContent = lp == null ? "–" : (lp >= 0 ? "+" + lp : String(lp));
+    lpEl.className = "val " + (lp == null ? "" : lp >= 0 ? "pos" : "neg");
+    $("s-lp-lbl").textContent = "NET LP";
+  } else {
+    const total = (d.season_wins ?? 0) + (d.season_losses ?? 0);
+    $("s-wl").textContent = String(total);
+    $("s-wl-lbl").textContent = "ALLE GAMES";
+    $("s-wr").textContent = total > 0
+      ? Math.round(100 * d.season_wins / total) + "%" : "–";
+    $("s-wr-lbl").textContent = "WR GESAMT";
+    lpEl.textContent = fmtHMS(d.ingame_seconds ?? 0);
+    lpEl.className = "val";
+    $("s-lp-lbl").textContent = "PLAY TIME";
+  }
+}
+
+// Timer-Box: wechselt alle 10s zwischen Grind-Timer und Ingame-Zeit
+function updateTimerBox() {
+  if (timerMode === 0) {
+    $("g-lbl").textContent = "GRIND TIMER";
+    tickTimer();
+  } else {
+    $("g-lbl").textContent = "INGAME TIME";
+    $("g-time").textContent = fmtHMS(lastData?.ingame_seconds ?? 0);
+  }
+}
+setInterval(() => { timerMode = 1 - timerMode; updateTimerBox(); }, 10000);
+
+function tickTimer() {
+  if (timerMode !== 0) return;
+  $("g-time").textContent = fmtHMS(grindBase + (Date.now() - grindAt) / 1000);
+}
+
+async function poll() {
+  try {
+    const r = await fetch("/api/data");
+    render(await r.json());
+  } catch (e) {
+    $("error").textContent = "Server nicht erreichbar — laeuft server.py?";
+    $("error").style.display = "block";
+  }
+}
+
+const DEMO = {
+  ok: true, error: null,
+  header_num: 5, header_text: "WINS TILL SILVER",
+  tier: "bronze", rank_label: "Bronze I", lp: 15,
+  progress: 79,
+  left_label: "Bronze IV", right_label: "Silver IV",
+  last5: [
+    { champ_id: 19,  champ: "Warwick", win: true,  remake: false, lp_delta: 24 },
+    { champ_id: 421, champ: "Rek'Sai", win: false, remake: false, lp_delta: -18 },
+    { champ_id: 62,  champ: "Wukong",  win: true,  remake: false, lp_delta: 21 },
+    { champ_id: 19,  champ: "Warwick", win: false, remake: false, lp_delta: -20 },
+    { champ_id: 19,  champ: "Warwick", win: true,  remake: false, lp_delta: 23 },
+  ],
+  session: { wins: 26, losses: 18, winrate: 59, net_lp: 224, games: 44 },
+  grind_seconds: 254670,
+  ingame_seconds: 73920,
+  season_wins: 300,
+  season_losses: 280,
+  win_streak: 3,
+  in_game: false,
+};
+
+if (new URLSearchParams(location.search).has("demo")) {
+  render(DEMO);
+} else {
+  poll();
+  setInterval(poll, 5000);
+}
+setInterval(tickTimer, 1000);
+
+// Im pywebview-Fenster: ESC schliesst das Overlay
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && window.pywebview) pywebview.api.close();
+});
+
+// ---- Layout/Design-Verwaltung ----------------------------------------
+// 5 Presets (Design-Menue, Python-Hotkey C). Auswahl bleibt in localStorage.
+// Nummern identisch zur Desktop-App (C#-Version)
+const PRESETS = {
+  1: { name: "Gold Glass",        layout: "card",  skin: "" },
+  2: { name: "Gold Glass Klein",  layout: "small", skin: "" },
+  3: { name: "Hextech Ice",       layout: "card",  skin: "skin-ice" },
+  4: { name: "Hextech Ice Klein", layout: "small", skin: "skin-ice" },
+  5: { name: "Neon",              layout: "card",  skin: "skin-neon" },
+  6: { name: "Neon Klein",        layout: "small", skin: "skin-neon" },
+  7: { name: "Clean Chips",       layout: "chips", skin: "" },
+  8: { name: "Mini Bar",          layout: "bar",   skin: "" },
+};
+const qp = new URLSearchParams(location.search);
+let preset = parseInt(qp.get("preset") || localStorage.getItem("ov-preset") || "1", 10);
+if (!PRESETS[preset]) preset = 1;
+let cleanOn = qp.has("clean");
+// Auto-Klein im Game (abschaltbar mit ?autosmall=0)
+const autoSmall = qp.get("autosmall") !== "0";
+let inGame = false;
+
+// Auto-Skin: Farben folgen dem aktuellen Tier (abschaltbar mit ?autoskin=0).
+// Gold und darunter = Gold-Design; das Preset bestimmt dann nur noch das
+// Layout (gross/klein/chips/bar).
+const autoSkin = qp.get("autoskin") !== "0";
+const TIER_SKIN = {
+  platinum: "skin-ice",
+  emerald: "skin-neon",
+  diamond: "skin-diamond",
+  master: "skin-master",
+  grandmaster: "skin-master",
+  challenger: "skin-master",
+};
+let curTier = "unranked";
+
+function applyView() {
+  const p = PRESETS[preset];
+  const b = document.body.classList;
+  const skin = autoSkin ? (TIER_SKIN[curTier] ?? "") : p.skin;
+  b.toggle("skin-ice", skin === "skin-ice");
+  b.toggle("skin-neon", skin === "skin-neon");
+  b.toggle("skin-diamond", skin === "skin-diamond");
+  b.toggle("skin-master", skin === "skin-master");
+  b.toggle("layout-bar", p.layout === "bar");
+  const small = p.layout === "small" ||
+                (autoSmall && inGame && p.layout === "card");
+  b.toggle("small", small);
+  b.toggle("clean", !small && (p.layout === "chips" ||
+                    (cleanOn && p.layout === "card")));
+  document.querySelectorAll("#settings .s-opt").forEach(el =>
+    el.classList.toggle("active", +el.dataset.preset === preset));
+  if (window.pywebview) {
+    try { pywebview.api.set_backdrop(p.skin === "skin-glass"); } catch (e) {}
+  }
+  refreshRegionSoon();
+}
+window.addEventListener("pywebviewready", applyView);
+
+function setPreset(n) {
+  preset = n;
+  try { localStorage.setItem("ov-preset", String(n)); } catch (e) {}
+  applyView();
+}
+
+// Clean-Modus (Python-Hotkey Z, oder ?clean=1)
+function setCleanMode(on) { cleanOn = on; applyView(); }
+
+// Settings-Panel (Python-Hotkey C) — ersetzt solange das Overlay
+function toggleSettings() {
+  document.body.classList.toggle("settings-open");
+  refreshRegionSoon();
+}
+
+// Pfeiltasten-Navigation im Design-Menue (global via Python-Hook,
+// zusaetzlich lokal falls das Fenster fokussiert ist)
+function settingsMove(d) {
+  const n = Object.keys(PRESETS).length;
+  setPreset(((preset - 1 + d) % n + n) % n + 1);
+}
+document.addEventListener("keydown", e => {
+  if (!document.body.classList.contains("settings-open")) return;
+  if (e.key === "ArrowUp") { e.preventDefault(); settingsMove(-1); }
+  if (e.key === "ArrowDown") { e.preventDefault(); settingsMove(1); }
+  if (e.key === "Enter" && window.pywebview) {
+    e.preventDefault();
+    pywebview.api.close_settings();
+  }
+});
+
+// Move-Modus: Karte/Bar wird zur Drag-Flaeche (Python-Hotkey X)
+function setMoveMode(on) {
+  document.body.classList.toggle("move-mode", on);
+  $("card").classList.toggle("pywebview-drag-region", on);
+  $("minibar").classList.toggle("pywebview-drag-region", on);
+}
+
+// ---- Fenster-Region ---------------------------------------------------
+// Python schneidet das Fenster auf genau EIN Rechteck zu (abgerundet).
+// Innere Loecher schafft der WebView2-Compositor nicht — deshalb ist in
+// jedem Modus genau ein zusammenhaengender Block sichtbar.
+function getRegionRects() {
+  const dpr = window.devicePixelRatio || 1;
+  const b = document.body.classList;
+  let el;
+  if (b.contains("settings-open")) el = $("settings");
+  else if (b.contains("layout-bar")) el = $("minibar");
+  else el = $("card");
+  if (!el) return [];
+  const r = el.getBoundingClientRect();
+  let rad = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
+  rad = Math.min(rad, r.width / 2, r.height / 2);
+  return [{ x: Math.floor(r.left * dpr), y: Math.floor(r.top * dpr),
+            w: Math.ceil(r.width * dpr), h: Math.ceil(r.height * dpr),
+            r: Math.round(rad * dpr) }];
+}
+
+let regionTimer = null;
+function refreshRegionSoon() {
+  if (!window.pywebview) return;
+  clearTimeout(regionTimer);
+  regionTimer = setTimeout(() => {
+    try { pywebview.api.refresh_region(); } catch (e) {}
+  }, 120);
+}
+
+if (qp.has("win")) document.body.classList.add("winbg");
+applyView();
+</script>
+<!-- Anpass-Haken: eine custom.js im GitHub-Repo laeuft nach dem Overlay-
+     Code und kann alles umbauen (alle Funktionen/Variablen sind global
+     erreichbar, z. B. setPreset, PRESETS, TIER_SKIN, render ...).
+     Fehlt die Datei, passiert einfach nichts. -->
+<script src="/custom.js"></script>
+</body>
+</html>
